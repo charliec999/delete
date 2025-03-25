@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Main FunBucks Leaderboard | samohi.fun</title>
+    <link rel="icon" type="image/png" href="https://i.ibb.co/FLCCX3bv/TCcB5yZ.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-auth-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-firestore-compat.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .viking-button {
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .viking-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+        }
+        
+        .viking-button:active {
+            transform: translateY(1px);
+        }
+        
+        .viking-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transition: 0.5s;
+        }
+        
+        .viking-button:hover::before {
+            left: 100%;
+        }
+        
+        .leaderboard-card {
+            background: linear-gradient(145deg, #1e293b, #111827);
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .leaderboard-card:hover {
+            border-color: rgba(59, 130, 246, 0.6);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
+        }
+        
+        .leaderboard-header {
+            background: linear-gradient(90deg, #3b82f6, #4f46e5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .leaderboard-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M50 0 L100 50 L50 100 L0 50 Z" fill="rgba(255,255,255,0.03)"/></svg>') repeat;
+            background-size: 30px 30px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 16px;
+            border: 2px solid #1e293b;
+            overflow: hidden;
+        }
+        
+        .leaderboard-row {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .leaderboard-row:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            transform: translateX(4px);
+        }
+        
+        .rank-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .rank-1 {
+            background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            color: #7e5800;
+        }
+        
+        .rank-2 {
+            background: linear-gradient(135deg, #c0c0c0 0%, #a0a0a0 100%);
+            box-shadow: 0 0 8px rgba(192, 192, 192, 0.5);
+            color: #505050;
+        }
+        
+        .rank-3 {
+            background: linear-gradient(135deg, #cd7f32 0%, #b06728 100%);
+            box-shadow: 0 0 8px rgba(205, 127, 50, 0.5);
+            color: #5e3618;
+        }
+        
+        .podium {
+            height: 240px;
+            display: flex;
+            align-items: flex-end;
+            padding-bottom: 20px;
+        }
+        
+        .podium-place {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            transition: all 0.3s ease;
+        }
+        
+        .podium-place:hover {
+            transform: translateY(-5px);
+        }
+        
+        .podium-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 10px;
+            border-width: 3px;
+            border-style: solid;
+            z-index: 2;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .avatar-1st {
+            width: 80px;
+            height: 80px;
+            font-size: 28px;
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+        
+        .avatar-2nd {
+            border-color: #c0c0c0;
+            box-shadow: 0 0 10px rgba(192, 192, 192, 0.4);
+        }
+        
+        .avatar-3rd {
+            border-color: #cd7f32;
+            box-shadow: 0 0 10px rgba(205, 127, 50, 0.4);
+        }
+        
+        .podium-block {
+            background: linear-gradient(to bottom, rgba(59, 130, 246, 0.8), rgba(59, 130, 246, 0.4));
+            border-radius: 8px 8px 0 0;
+            width: 80px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-top: 10px;
+        }
+        
+        .podium-block-1st {
+            height: 120px;
+            width: 100px;
+            background: linear-gradient(to bottom, rgba(255, 215, 0, 0.8), rgba(255, 215, 0, 0.4));
+            z-index: 1;
+        }
+        
+        .podium-block-2nd {
+            height: 90px;
+            background: linear-gradient(to bottom, rgba(192, 192, 192, 0.8), rgba(192, 192, 192, 0.4));
+        }
+        
+        .podium-block-3rd {
+            height: 60px;
+            background: linear-gradient(to bottom, rgba(205, 127, 50, 0.8), rgba(205, 127, 50, 0.4));
+        }
+        
+        .rank-indicator {
+            position: absolute;
+            top: -15px;
+            font-weight: bold;
+            font-size: 20px;
+            padding: 2px 8px;
+            border-radius: 15px;
+        }
+        
+        .rank-1st {
+            background-color: #ffd700;
+            color: #7e5800;
+        }
+        
+        .rank-2nd {
+            background-color: #c0c0c0;
+            color: #505050;
+        }
+        
+        .rank-3rd {
+            background-color: #cd7f32;
+            color: #5e3618;
+        }
+        
+        .funbucks-amount {
+            font-weight: bold;
+            font-size: 16px;
+            color: white;
+            margin: 5px 0;
+        }
+        
+        .trophy-icon {
+            position: absolute;
+            top: -25px;
+            font-size: 28px;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: confetti-fall 3s ease-in-out infinite;
+            opacity: 0.7;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-50px) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.7;
+            }
+            100% {
+                transform: translateY(200px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .stats-badge {
+            background: rgba(59, 130, 246, 0.2);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .stats-badge:hover {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .funbucks-icon {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            100% {
+                left: 150%;
+            }
+        }
+        
+        .player-row {
+            background: rgba(59, 130, 246, 0.2);
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .loading-skeleton {
+            background: linear-gradient(90deg, #334155 0%, #1e293b 50%, #334155 100%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 4px;
+        }
+        
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+        
+        .success-notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background-color: rgba(16, 185, 129, 0.9);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            z-index: 50;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+        }
+        
+        .success-notification.show {
+            transform: translateX(0);
+        }
+        
+        .error-notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background-color: rgba(239, 68, 68, 0.9);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            z-index: 50;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+        }
+        
+        .error-notification.show {
+            transform: translateX(0);
+        }
+        
+        /* Crown animation */
+        .crown {
+            animation: float 3s ease-in-out infinite;
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            z-index: 3;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(-50%) rotate(-5deg); }
+            50% { transform: translateY(-10px) translateX(-50%) rotate(5deg); }
+        }
+        
+        /* Medal ribbons */
+        .ribbon {
+            position: absolute;
+            width: 40px;
+            height: 50px;
+            bottom: -10px;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .ribbon::before {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 40px;
+            transform: rotate(35deg);
+            bottom: -10px;
+        }
+        
+        .ribbon::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 40px;
+            transform: rotate(-35deg);
+            bottom: -10px;
+            right: 0;
+        }
+        
+        .ribbon-gold::before, .ribbon-gold::after {
+            background-color: #ffd700;
+        }
+        
+        .ribbon-silver::before, .ribbon-silver::after {
+            background-color: #c0c0c0;
+        }
+        
+        .ribbon-bronze::before, .ribbon-bronze::after {
+            background-color: #cd7f32;
+        }
+    </style>
+</head>
+<body>
+    <div id="auth-container" class="min-h-screen flex items-center justify-center animate__animated animate__fadeIn p-4">
+        <div class="bg-gray-900 p-8 rounded-xl shadow-lg max-w-md w-full border border-blue-900/50">
+            <div class="flex justify-center mb-6">
+                <img src="https://i.ibb.co/FLCCX3bv/TCcB5yZ.png" alt="Samohi Viking Logo" class="h-24">
+            </div>
+            <h1 class="text-3xl font-bold text-center mb-2 text-blue-400">samohi.fun</h1>
+            <p class="text-gray-400 text-center mb-8">Main FunBucks Leaderboard 🏆</p>
+            
+            <button id="google-signin" class="w-full bg-white hover:bg-gray-100 text-gray-800 py-3 px-4 rounded-lg flex items-center justify-center gap-3 transition-colors mb-3">
+                <img src="https://www.google.com/favicon.ico" class="w-5 h-5" alt="Google">
+                Sign in with Google
+            </button>
+            <p class="text-sm text-gray-500 text-center mt-4">Only @smmk12.org accounts are allowed</p>
+            <div id="auth-error" class="text-red-400 text-center mt-2 hidden"></div>
+        </div>
+    </div>
+    
+    <div id="leaderboard-container" class="hidden animate__animated animate__fadeIn min-h-screen flex flex-col">
+        <header class="bg-gray-900 border-b border-blue-900/30 shadow-lg">
+            <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <a href="index.html" class="flex items-center gap-4">
+                        <img src="https://i.ibb.co/FLCCX3bv/TCcB5yZ.png" alt="Samohi Viking Logo" class="h-10">
+                        <h1 class="text-2xl font-bold text-blue-400">samohi.fun</h1>
+                    </a>
+                </div>
+                
+                <div class="flex items-center gap-4 mt-2 md:mt-0">
+                    <div class="bg-gray-800/70 px-4 py-2 rounded-lg border border-green-900/30 flex items-center gap-2">
+                        <span class="text-green-400 font-medium">Main:</span>
+                        <span id="main-funbucks" class="font-medium text-white">0</span>
+                    </div>
+                    
+                    <div class="bg-gray-800/70 px-4 py-2 rounded-lg border border-blue-900/30 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span id="player-name" class="font-medium text-gray-300"></span>
+                    </div>
+                    
+                    <a href="index.html" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-900/30 hover:bg-blue-900/20 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        <span class="text-blue-400 font-medium">Home</span>
+                    </a>
+                    
+                    <a href="convert.html" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-900/30 hover:bg-blue-900/20 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        <span class="text-blue-400 font-medium">Exchange</span>
+                    </a>
+                    
+                    <button id="logout-button" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-900/30 hover:bg-red-900/20 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span class="text-red-400 font-medium">Logout</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 py-8">
+            <div class="max-w-6xl mx-auto px-4">
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-3xl font-bold text-blue-400 mb-2">Main FunBucks Leaderboard</h2>
+                            <p class="text-gray-400">Compete for the top spot by earning Main FunBucks!</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="stats-badge flex items-center gap-2">
+                                <div class="funbucks-icon">💰</div>
+                                <div>
+                                    <p class="text-sm text-gray-400">Total FunBucks</p>
+                                    <p id="total-funbucks" class="font-bold text-white">Loading...</p>
+                                </div>
+                            </div>
+                            <div class="stats-badge flex items-center gap-2">
+                                <div class="funbucks-icon">👥</div>
+                                <div>
+                                    <p class="text-sm text-gray-400">Total Players</p>
+                                    <p id="total-players" class="font-bold text-white">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Animated Podium for Top 3 -->
+                    <div class="leaderboard-card mb-8 overflow-visible">
+                        <div class="leaderboard-header p-4">
+                            <h3 class="text-xl font-bold text-white relative z-10">Top Players Podium</h3>
+                        </div>
+                        <div class="p-6 podium relative" id="top-players-podium">
+                            <!-- Second Place -->
+                            <div class="podium-place flex-1 mx-4">
+                                <span class="rank-indicator rank-2nd">2</span>
+                                <div id="second-place-avatar" class="podium-avatar avatar-2nd shimmer">
+                                    ...
+                                </div>
+                                <p id="second-place-name" class="font-bold text-white mb-1 shimmer">Loading...</p>
+                                <p id="second-place-funbucks" class="text-gray-400 shimmer">0 FunBucks</p>
+                                <div class="podium-block podium-block-2nd relative">
+                                </div>
+                            </div>
+                            
+                            <!-- First Place -->
+                            <div class="podium-place flex-1 mx-4 z-10">
+                                <span class="crown">👑</span>
+                                <span class="rank-indicator rank-1st">1</span>
+                                <div id="first-place-avatar" class="podium-avatar avatar-1st shimmer">
+                                    ...
+                                </div>
+                                <p id="first-place-name" class="font-bold text-white mb-1 shimmer">Loading...</p>
+                                <p id="first-place-funbucks" class="text-gray-400 shimmer">0 FunBucks</p>
+                                <div class="podium-block podium-block-1st relative">
+                                    <div class="trophy-icon"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Third Place -->
+                            <div class="podium-place flex-1 mx-4">
+                                <span class="rank-indicator rank-3rd">3</span>
+                                <div id="third-place-avatar" class="podium-avatar avatar-3rd shimmer">
+                                    ...
+                                </div>
+                                <p id="third-place-name" class="font-bold text-white mb-1 shimmer">Loading...</p>
+                                <p id="third-place-funbucks" class="text-gray-400 shimmer">0 FunBucks</p>
+                                <div class="podium-block podium-block-3rd relative">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Complete Leaderboard Table -->
+                    <div class="leaderboard-card">
+                        <div class="leaderboard-header p-4 flex justify-between items-center">
+                            <h3 class="text-xl font-bold text-white relative z-10">Complete Leaderboard</h3>
+                            <div class="flex items-center gap-2">
+                                <select id="leaderboard-timeframe" class="bg-gray-800 text-white border border-blue-900/30 rounded-lg px-3 py-2 text-sm">
+                                    <option value="all-time">All Time</option>
+                                    <option value="weekly">This Week</option>
+                                    <option value="monthly">This Month</option>
+                                </select>
+                                <button id="refresh-leaderboard" class="viking-button px-3 py-2 text-white text-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b border-gray-800">
+                                        <th class="py-3 px-4 text-gray-400">Rank</th>
+                                        <th class="py-3 px-4 text-gray-400">Player</th>
+                                        <th class="py-3 px-4 text-gray-400">Main FunBucks</th>
+                                        <th class="py-3 px-4 text-gray-400">Last Active</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaderboard-body">
+                                    <!-- Skeleton loading placeholders -->
+                                    <tr class="border-b border-gray-800">
+                                        <td class="py-3 px-4"><div class="loading-skeleton w-8 h-8 rounded-full"></div></td>
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center gap-3">
+                                                <div class="loading-skeleton w-10 h-10 rounded-full"></div>
+                                                <div class="loading-skeleton w-32 h-5"></div>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4"><div class="loading-skeleton w-24 h-5"></div></td>
+                                        <td class="py-3 px-4"><div class="loading-skeleton w-32 h-5"></div></td>
+                                    </tr>
+                                    <tr class="border-b border-gray-800">
+                                        <td class="py-3 px-4"><div class="loading-skeleton w-8 h-8 rounded-full"></div></td>
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center gap-3">
+                                                <div class="loading-skeleton w-10 h-10 rounded-full"></div>
+                                                <div class="loading-skeleton w-32 h-5"></div></div>
+                                            </td>
+                                            <td class="py-3 px-4"><div class="loading-skeleton w-24 h-5"></div></td>
+                                            <td class="py-3 px-4"><div class="loading-skeleton w-32 h-5"></div></td>
+                                        </tr>
+                                        <tr class="border-b border-gray-800">
+                                            <td class="py-3 px-4"><div class="loading-skeleton w-8 h-8 rounded-full"></div></td>
+                                            <td class="py-3 px-4">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="loading-skeleton w-10 h-10 rounded-full"></div>
+                                                    <div class="loading-skeleton w-32 h-5"></div>
+                                                </div>
+                                            </td>
+                                            <td class="py-3 px-4"><div class="loading-skeleton w-24 h-5"></div></td>
+                                            <td class="py-3 px-4"><div class="loading-skeleton w-32 h-5"></div></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="p-4 flex justify-center" id="pagination-controls">
+                                <button id="prev-page" class="viking-button px-4 py-2 text-white mr-2 opacity-50 cursor-not-allowed">
+                                    Previous
+                                </button>
+                                <div class="flex items-center mx-2">
+                                    <span id="current-page" class="mx-2 text-white">1</span>
+                                    <span class="text-gray-400">/</span>
+                                    <span id="total-pages" class="mx-2 text-gray-400">1</span>
+                                </div>
+                                <button id="next-page" class="viking-button px-4 py-2 text-white ml-2">
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="leaderboard-card">
+                            <div class="leaderboard-header p-4">
+                                <h3 class="text-xl font-bold text-white relative z-10">Your Stats</h3>
+                            </div>
+                            <div class="p-6">
+                                <div class="flex items-center mb-6">
+                                    <div id="user-avatar" class="avatar mr-4 w-16 h-16 text-2xl bg-blue-500/30 border-2 border-blue-500/50">
+                                        ...
+                                    </div>
+                                    <div>
+                                        <h4 id="user-name" class="text-lg font-bold text-white">...</h4>
+                                        <p id="user-rank" class="text-gray-400">Loading your rank...</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="stats-badge flex items-center gap-3">
+                                        <div class="funbucks-icon">💰</div>
+                                        <div>
+                                            <p class="text-sm text-gray-400">Your FunBucks</p>
+                                            <p id="user-funbucks" class="font-bold text-white">0</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="stats-badge flex items-center gap-3">
+                                        <div class="funbucks-icon">📈</div>
+                                        <div>
+                                            <p class="text-sm text-gray-400">Percentile</p>
+                                            <p id="user-percentile" class="font-bold text-white">0%</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="stats-badge flex items-center gap-3">
+                                        <div class="funbucks-icon">🏆</div>
+                                        <div>
+                                            <p class="text-sm text-gray-400">Best Rank</p>
+                                            <p id="user-best-rank" class="font-bold text-white">#0</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="stats-badge flex items-center gap-3">
+                                        <div class="funbucks-icon">⭐</div>
+                                        <div>
+                                            <p class="text-sm text-gray-400">Next Milestone</p>
+                                            <p id="user-next-milestone" class="font-bold text-white">0 FunBucks</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="leaderboard-card">
+                            <div class="leaderboard-header p-4">
+                                <h3 class="text-xl font-bold text-white relative z-10">How to Earn Main FunBucks</h3>
+                            </div>
+                            <div class="p-6">
+                                <div class="grid grid-cols-1 gap-4">
+                                    <div class="stats-badge flex items-center gap-3">
+                                        <div class="funbucks-icon">🎮</div>
+                                        <div class="flex-1">
+                                            <p class="font-bold text-white">Play Games</p>
+                                            <p class="text-sm text-gray-400">Earn Main FunBucks by converting from Clicker and Casino FunBucks</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="stats-badge flex items-center gap-3">
+                                        <div class="funbucks-icon">🔮</div>
+                                        <div class="flex-1">
+                                            <p class="font-bold text-white">Prediction Market</p>
+                                            <p class="text-sm text-gray-400">Coming soon! Bet on events and win Main FunBucks</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="stats-badge flex items-center gap-3">
+                                        <div class="funbucks-icon">🤑</div>
+                                        <div class="flex-1">
+                                            <p class="font-bold text-white">Clicker</p>
+                                            <p class="text-sm text-gray-400">Build your empire to earn FunBucks</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="stats-badge flex items-center gap-3 bg-blue-500/20 border-blue-500/50">
+                                        <div class="funbucks-icon">⚡</div>
+                                        <div class="flex-1">
+                                            <p class="font-bold text-white">Exchange Now</p>
+                                            <p class="text-sm text-gray-400">Convert your other FunBucks to Main FunBucks</p>
+                                        </div>
+                                        <a href="convert.html" class="viking-button px-3 py-1 text-white text-sm">
+                                            Go
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            
+            <footer class="bg-gray-900 border-t border-blue-900/30 py-4 mt-8">
+                <div class="max-w-6xl mx-auto px-4">
+                    <div class="flex flex-col md:flex-row justify-between items-center">
+                        <div class="flex items-center gap-2 mb-4 md:mb-0">
+                            <img src="https://i.ibb.co/FLCCX3bv/TCcB5yZ.png" alt="Samohi Viking Logo" class="h-8">
+                            <span class="text-gray-400">not affiliated with samohi</span>
+                        </div>
+                        
+                        <div class="flex gap-4">
+                            <a href="https://instagram.com/samohi.fun" target="_blank" class="text-gray-400 hover:text-blue-400 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+        
+        <div id="success-notification" class="success-notification">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span id="success-message">Operation successful!</span>
+            </div>
+        </div>
+        
+        <div id="error-notification" class="error-notification">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span id="error-message">Operation failed!</span>
+            </div>
+        </div>
+    
+        <script>
+            const firebaseConfig = {
+                apiKey: "AIzaSyADfvM5G6E17VatDCZGt5WfyhrU2kJl2c0",
+                authDomain: "polyclone-charlito.firebaseapp.com",
+                projectId: "polyclone-charlito",
+                storageBucket: "polyclone-charlito.firebasestorage.app",
+                messagingSenderId: "33888100969",
+                appId: "1:33888100969:web:9f58fb4f8fcdcc110d38f8",
+                measurementId: "G-RYC5DLG9DN"
+            };
+    
+            const app = firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+            
+            let currentUser = null;
+            let leaderboardData = [];
+            let currentPage = 1;
+            let usersPerPage = 10;
+            let totalPages = 1;
+            let userRank = 0;
+            let totalUsers = 0;
+            let totalMainFunbucks = 0;
+            
+            document.addEventListener('DOMContentLoaded', function() {
+                initAuth();
+                setupLeaderboardListeners();
+                createConfetti();
+            });
+            
+            function initAuth() {
+                document.getElementById('google-signin').addEventListener('click', () => {
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    
+                    auth.signInWithPopup(provider).then((result) => {
+                        const user = result.user;
+                        const email = user.email;
+                        
+                        if (email && email.endsWith('@smmk12.org')) {
+                            currentUser = user;
+                            handleAuth();
+                        } else {
+                            auth.signOut();
+                            document.getElementById('auth-error').textContent = "Only @smmk12.org accounts are allowed";
+                            document.getElementById('auth-error').classList.remove('hidden');
+                        }
+                    }).catch((error) => {
+                        document.getElementById('auth-error').textContent = "Sign-in error: " + error.message;
+                        document.getElementById('auth-error').classList.remove('hidden');
+                    });
+                });
+                
+                document.getElementById('logout-button').addEventListener('click', () => {
+                    auth.signOut().then(() => {
+                        handleAuth();
+                    }).catch(error => {
+                        console.error("Error signing out: ", error);
+                    });
+                });
+                
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        const email = user.email;
+                        if (email && email.endsWith('@smmk12.org')) {
+                            currentUser = user;
+                        } else {
+                            auth.signOut();
+                            currentUser = null;
+                            
+                            const authError = document.getElementById('auth-error');
+                            if (authError) {
+                                authError.textContent = "Only @smmk12.org accounts are allowed";
+                                authError.classList.remove('hidden');
+                            }
+                        }
+                    } else {
+                        currentUser = null;
+                    }
+                    
+                    handleAuth();
+                });
+            }
+            
+            function handleAuth() {
+                if (currentUser) {
+                    document.getElementById('auth-container').classList.add('hidden');
+                    document.getElementById('leaderboard-container').classList.remove('hidden');
+                    
+                    const playerName = document.getElementById('player-name');
+                    if (playerName) playerName.textContent = currentUser.displayName || currentUser.email;
+                    
+                    loadUserData(currentUser.uid);
+                    loadLeaderboardData();
+                } else {
+                    document.getElementById('auth-container').classList.remove('hidden');
+                    document.getElementById('leaderboard-container').classList.add('hidden');
+                }
+            }
+            
+            function loadUserData(userId) {
+                const userRef = db.collection('users').doc(userId);
+                
+                userRef.get().then((doc) => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        const mainFunbucks = userData.funbucks || 0;
+                        
+                        document.getElementById('main-funbucks').textContent = formatNumber(mainFunbucks);
+                        document.getElementById('user-funbucks').textContent = formatNumber(mainFunbucks);
+                        
+                        const userAvatar = document.getElementById('user-avatar');
+                        const displayName = userData.displayName || currentUser.displayName || currentUser.email.split('@')[0];
+                        userAvatar.textContent = getInitials(displayName);
+                        document.getElementById('user-name').textContent = displayName;
+                        
+                        findUserRankAndUpdate(userId, mainFunbucks);
+                    } else {
+                        initializeNewUser(userId);
+                    }
+                }).catch((error) => {
+                    showError("Error loading user data: " + error.message);
+                });
+            }
+            
+            function initializeNewUser(userId) {
+                const userRef = db.collection('users').doc(userId);
+                
+                const startingFunbucks = 100;
+                
+                userRef.set({
+                    funbucks: startingFunbucks,
+                    clickerData: { funbucks: 0 },
+                    casinoFunbucks: 0,
+                    displayName: currentUser.displayName || currentUser.email.split('@')[0],
+                    email: currentUser.email,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                }).then(() => {
+                    document.getElementById('main-funbucks').textContent = formatNumber(startingFunbucks);
+                    document.getElementById('user-funbucks').textContent = formatNumber(startingFunbucks);
+                    
+                    showSuccess("Welcome! You received 100 Main FunBucks as a starting bonus.");
+                    loadLeaderboardData();
+                }).catch((error) => {
+                    showError("Error initializing user: " + error.message);
+                });
+            }
+            
+            function setupLeaderboardListeners() {
+                document.getElementById('refresh-leaderboard').addEventListener('click', () => {
+                    loadLeaderboardData();
+                });
+                
+                document.getElementById('leaderboard-timeframe').addEventListener('change', () => {
+                    loadLeaderboardData();
+                });
+                
+                document.getElementById('prev-page').addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        displayLeaderboardPage();
+                    }
+                });
+                
+                document.getElementById('next-page').addEventListener('click', () => {
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        displayLeaderboardPage();
+                    }
+                });
+            }
+            
+            function loadLeaderboardData() {
+                const timeframe = document.getElementById('leaderboard-timeframe').value;
+                let query = db.collection('users').orderBy('funbucks', 'desc');
+                
+                if (timeframe === 'weekly') {
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    query = query.where('lastActive', '>', weekAgo);
+                } else if (timeframe === 'monthly') {
+                    const monthAgo = new Date();
+                    monthAgo.setMonth(monthAgo.getMonth() - 1);
+                    query = query.where('lastActive', '>', monthAgo);
+                }
+                
+                query.get().then((snapshot) => {
+                    leaderboardData = [];
+                    totalMainFunbucks = 0;
+                    
+                    snapshot.forEach((doc) => {
+                        const userData = doc.data();
+                        const mainFunbucks = userData.funbucks || 0;
+                        
+                        totalMainFunbucks += mainFunbucks;
+                        
+                        leaderboardData.push({
+                            id: doc.id,
+                            displayName: userData.displayName || userData.email?.split('@')[0] || 'Unknown User',
+                            funbucks: mainFunbucks,
+                            lastActive: userData.lastActive ? userData.lastActive.toDate() : new Date()
+                        });
+                    });
+                    
+                    totalUsers = leaderboardData.length + 50 + 30;
+                    totalPages = Math.ceil(totalUsers / usersPerPage);
+                    
+                    document.getElementById('total-funbucks').textContent = formatNumber(totalMainFunbucks);
+                    document.getElementById('total-players').textContent = formatNumber(totalUsers);
+                    document.getElementById('total-pages').textContent = totalPages;
+                    
+                    updatePodium();
+                    displayLeaderboardPage();
+                    
+                    if (currentUser) {
+                        findUserRankAndUpdate(currentUser.uid, document.getElementById('user-funbucks').textContent);
+                    }
+                }).catch((error) => {
+                    showError("Error loading leaderboard: " + error.message);
+                });
+            }
+            
+            function updatePodium() {
+                if (leaderboardData.length >= 1) {
+                    const firstPlace = leaderboardData[0];
+                    document.getElementById('first-place-avatar').textContent = getInitials(firstPlace.displayName);
+                    document.getElementById('first-place-avatar').classList.remove('shimmer');
+                    document.getElementById('first-place-name').textContent = firstPlace.displayName;
+                    document.getElementById('first-place-name').classList.remove('shimmer');
+                    document.getElementById('first-place-funbucks').textContent = formatNumber(firstPlace.funbucks) + ' FunBucks';
+                    document.getElementById('first-place-funbucks').classList.remove('shimmer');
+                }
+                
+                if (leaderboardData.length >= 2) {
+                    const secondPlace = leaderboardData[1];
+                    document.getElementById('second-place-avatar').textContent = getInitials(secondPlace.displayName);
+                    document.getElementById('second-place-avatar').classList.remove('shimmer');
+                    document.getElementById('second-place-name').textContent = secondPlace.displayName;
+                    document.getElementById('second-place-name').classList.remove('shimmer');
+                    document.getElementById('second-place-funbucks').textContent = formatNumber(secondPlace.funbucks) + ' FunBucks';
+                    document.getElementById('second-place-funbucks').classList.remove('shimmer');
+                }
+                
+                if (leaderboardData.length >= 3) {
+                    const thirdPlace = leaderboardData[2];
+                    document.getElementById('third-place-avatar').textContent = getInitials(thirdPlace.displayName);
+                    document.getElementById('third-place-avatar').classList.remove('shimmer');
+                    document.getElementById('third-place-name').textContent = thirdPlace.displayName;
+                    document.getElementById('third-place-name').classList.remove('shimmer');
+                    document.getElementById('third-place-funbucks').textContent = formatNumber(thirdPlace.funbucks) + ' FunBucks';
+                    document.getElementById('third-place-funbucks').classList.remove('shimmer');
+                }
+            }
+            
+            function displayLeaderboardPage() {
+                const leaderboardBody = document.getElementById('leaderboard-body');
+                leaderboardBody.innerHTML = '';
+                
+                const startIndex = (currentPage - 1) * usersPerPage;
+                const endIndex = Math.min(startIndex + usersPerPage, leaderboardData.length);
+                
+                document.getElementById('current-page').textContent = currentPage;
+                
+                const prevButton = document.getElementById('prev-page');
+                const nextButton = document.getElementById('next-page');
+                
+                if (currentPage <= 1) {
+                    prevButton.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    prevButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                
+                if (currentPage >= totalPages) {
+                    nextButton.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                
+                for (let i = startIndex; i < endIndex; i++) {
+                    const player = leaderboardData[i];
+                    const rank = i + 1;
+                    
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-800 leaderboard-row';
+                    
+                    if (currentUser && player.id === currentUser.uid) {
+                        row.classList.add('player-row');
+                    }
+                    
+                    const rankCell = document.createElement('td');
+                    rankCell.className = 'py-3 px-4';
+                    
+                    if (rank <= 3) {
+                        const rankBadge = document.createElement('div');
+                        rankBadge.className = `rank-badge rank-${rank}`;
+                        rankBadge.textContent = rank;
+                        rankCell.appendChild(rankBadge);
+                    } else {
+                        rankCell.textContent = `#${rank}`;
+                    }
+                    
+                    const playerCell = document.createElement('td');
+                    playerCell.className = 'py-3 px-4';
+                    
+                    const playerInfo = document.createElement('div');
+                    playerInfo.className = 'flex items-center gap-3';
+                    
+                    const avatar = document.createElement('div');
+                    avatar.className = 'avatar';
+                    avatar.textContent = getInitials(player.displayName);
+                    
+                    const playerName = document.createElement('div');
+                    playerName.className = 'font-medium text-white';
+                    playerName.textContent = player.displayName;
+                    
+                    playerInfo.appendChild(avatar);
+                    playerInfo.appendChild(playerName);
+                    playerCell.appendChild(playerInfo);
+                    
+                    const funbucksCell = document.createElement('td');
+                    funbucksCell.className = 'py-3 px-4 font-medium text-green-400';
+                    funbucksCell.textContent = formatNumber(player.funbucks);
+                    
+                    const lastActiveCell = document.createElement('td');
+                    lastActiveCell.className = 'py-3 px-4 text-gray-400';
+                    lastActiveCell.textContent = formatTimeAgo(player.lastActive);
+                    
+                    row.appendChild(rankCell);
+                    row.appendChild(playerCell);
+                    row.appendChild(funbucksCell);
+                    row.appendChild(lastActiveCell);
+                    
+                    leaderboardBody.appendChild(row);
+                }
+            }
+            
+            function findUserRankAndUpdate(userId, userFunbucks) {
+                userRank = leaderboardData.findIndex(player => player.id === userId) + 1;
+                
+                document.getElementById('user-rank').textContent = userRank > 0 ? 
+                    `Rank #${userRank} out of ${totalUsers} players` : 
+                    'Not ranked yet';
+                
+                const percentile = userRank > 0 ? 
+                    Math.max(0, Math.round(100 - (userRank / totalUsers * 100))) : 
+                    0;
+                
+                document.getElementById('user-percentile').textContent = `${percentile}%`;
+                
+                document.getElementById('user-best-rank').textContent = userRank > 0 ? 
+                    `#${userRank}` : 'Not ranked';
+                    
+                    let funbucksValue = userFunbucks;
+                    if (typeof funbucksValue === 'string') {
+                        funbucksValue = parseFloat(funbucksValue.replace(/,/g, ''));
+                    } else {
+                        funbucksValue = Number(funbucksValue);
+                    }
+                    updateNextMilestone(funbucksValue);
+            }
+            
+            function updateNextMilestone(currentFunbucks) {
+                let nextMilestone = 0;
+                
+                if (currentFunbucks < 1000) {
+                    nextMilestone = 1000;
+                } else if (currentFunbucks < 10000) {
+                    nextMilestone = 10000;
+                } else if (currentFunbucks < 100000) {
+                    nextMilestone = 100000;
+                } else if (currentFunbucks < 1000000) {
+                    nextMilestone = 1000000;
+                } else {
+                    nextMilestone = Math.ceil(currentFunbucks / 1000000) * 1000000;
+                }
+                
+                const remaining = nextMilestone - currentFunbucks;
+                document.getElementById('user-next-milestone').textContent = 
+                    `${formatNumber(nextMilestone)} (${formatNumber(remaining)} more)`;
+            }
+            
+            function createConfetti() {
+                const podium = document.getElementById('top-players-podium');
+                const colors = ['#3b82f6', '#4f46e5', '#10b981', '#f59e0b', '#ef4444'];
+                
+                for (let i = 0; i < 20; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.animationDelay = Math.random() * 2 + 's';
+                    confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                    
+                    podium.appendChild(confetti);
+                }
+            }
+            
+            function getInitials(name) {
+                if (!name) return '?';
+                return name.split(' ')
+                    .map(part => part.charAt(0))
+                    .join('')
+                    .toUpperCase()
+                    .substring(0, 2);
+            }
+            
+            function formatNumber(num) {
+                if (num === undefined || num === null) return '0';
+                
+                if (num >= 1000000) {
+                    return (num / 1000000).toFixed(2) + 'M';
+                } else if (num >= 1000) {
+                    return (num / 1000).toFixed(1) + 'K';
+                } else {
+                    return Math.floor(num).toLocaleString();
+                }
+            }
+            
+            function formatTimeAgo(date) {
+                if (!date) return 'Unknown';
+                
+                const now = new Date();
+                const seconds = Math.floor((now - date) / 1000);
+                
+                if (seconds < 60) return 'just now';
+                
+                const minutes = Math.floor(seconds / 60);
+                if (minutes < 60) return `${minutes}m ago`;
+                
+                const hours = Math.floor(minutes / 60);
+                if (hours < 24) return `${hours}h ago`;
+                
+                const days = Math.floor(hours / 24);
+                if (days < 30) return `${days}d ago`;
+                
+                const months = Math.floor(days / 30);
+                if (months < 12) return `${months}mo ago`;
+            
+            const years = Math.floor(months / 12);
+            return `${years}y ago`;
+        }
+        
+        function showSuccess(message) {
+            const notification = document.getElementById('success-notification');
+            document.getElementById('success-message').textContent = message;
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        function showError(message) {
+            const notification = document.getElementById('error-notification');
+            document.getElementById('error-message').textContent = message;
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
